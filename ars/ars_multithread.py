@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import copy
 import json
 import threading
@@ -9,8 +11,6 @@ import gym
 import numpy as np
 from gym import wrappers
 from numpy.core.records import ndarray
-
-from ars.ars_multiproc import Agent
 
 
 ENV_NAME = 'BipedalWalker-v3'
