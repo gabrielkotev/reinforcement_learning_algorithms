@@ -61,13 +61,13 @@ class Agent:
             rollouts.append((self.clone_and_modify(deltas=rnd), self.clone_and_modify(deltas=-rnd)))
         return tuple(rollouts)
 
-    def update_weights(self, scores: ndarray, agents: Tuple[Tuple[Agent]]) -> None:
+    def update_weights(self, scores: ndarray, rollouts: Tuple[Tuple[Agent]]) -> None:
         total_scores = np.asarray(tuple(max(x[0], x[1]) for x in scores))
         best_in_iter = np.argsort(total_scores)[-self.num_of_top_perform:]
         top_rewards = np.asarray([s for k, s in enumerate(scores) if k in best_in_iter])
-        top_deltas = np.asarray([s[0].deltas for k, s in enumerate(agents) if k in best_in_iter])
+        top_deltas = np.asarray([s[0].deltas for k, s in enumerate(rollouts) if k in best_in_iter])
 
-        std_rewards = scores.flatten().std()
+        std_rewards = top_rewards.flatten().std()
         d_sum = np.sum(tuple((rewards_pair[0] - rewards_pair[1]) * pop_weights for rewards_pair, pop_weights in
                              zip(top_rewards, top_deltas)), axis=0)
         self.weights += self.step_size * d_sum / (self.num_of_top_perform * std_rewards)
@@ -152,7 +152,6 @@ class Trainer:
             else:
                 # normalization between 0 and 2 -> (x - min) / (max - min)
                 reward = reward / 2
-            # reward = min(max(reward, -1), 1)
             score += reward
             if done:
                 break
