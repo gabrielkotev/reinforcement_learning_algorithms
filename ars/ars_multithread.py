@@ -33,8 +33,7 @@ class Agent:
         self.num_of_params = n * look_back_num
         self.weights = np.zeros((p, self.num_of_params))
         self.mean = np.zeros(self.num_of_params)
-        self.mean_diff = np.zeros(self.num_of_params)
-        self.var = np.zeros(self.num_of_params)
+        self.m2 = np.zeros(self.num_of_params)
         self.deltas = np.zeros((p, self.num_of_params))
         self.step_size = step_size
         self.exploration_noise = exploration_noise
@@ -73,12 +72,17 @@ class Agent:
         self.weights += self.step_size * d_sum / (self.num_of_top_perform * std_rewards)
 
     def _normalize(self, state_input: ndarray) -> float:
+        """
+        Calculating the variance online by using Welford's online algorithm
+        and normalizing according to the paper
+        """
         self.counter += 1
-        last_mean = self.mean.copy()
-        self.mean += (state_input - self.mean) / self.counter
-        self.mean_diff += (state_input - last_mean) * (state_input - self.mean)
-        self.var = self.mean_diff / self.counter
-        return (state_input - self.mean) / np.sqrt(self.var + 1e-5)
+        delta = state_input - self.mean
+        self.mean += delta / self.counter
+        delta2 = state_input - self.mean
+        self.m2 += delta * delta2
+        var = self.m2 / self.counter
+        return (state_input - self.mean) / np.sqrt(var + 1e-10)
 
     def save_to_file(self) -> None:
 
