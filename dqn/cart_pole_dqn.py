@@ -183,18 +183,18 @@ if __name__ == '__main__':
     REDUCE_EPSILON_STEPS = 4
     END_EPSILON = 0.01
     BATCH_SIZE = 256
-    gamma = 0.99
-    replay_buffer = 1000
-    look_back_num = 1
+    GAMMA = 0.99
+    REPLAY_BUFFER = 1000
+    LOOK_BACK_NUM = 1
 
-    video_path = f'c:/videos/{ENV_NAME}_{look_back_num}_{time.strftime("%d-%m-%Y_%H-%M-%S")}'
+    video_path = f'c:/videos/{ENV_NAME}_{LOOK_BACK_NUM}_{time.strftime("%d-%m-%Y_%H-%M-%S")}'
 
     env = gym.make(ENV_NAME)
     env = wrappers.Monitor(env, video_path, resume=True, video_callable=lambda count: count % 50 == 0)
 
     trainer = Trainer(env, EPOCHS, REDUCE_EPSILON_EPOCH, REDUCE_EPSILON_STEPS, end_epsilon=END_EPSILON,
-                      replay_buffer=replay_buffer, look_back_num=look_back_num,
-                      num_of_layers=2, num_of_neurons=256, lr=5e-5)
+                      replay_buffer=REPLAY_BUFFER, look_back_num=LOOK_BACK_NUM,
+                      num_of_layers=2, num_of_neurons=256, lr=5e-5, gamma=GAMMA)
     rewards = trainer.train(BATCH_SIZE)
 
     plt.plot(rewards)
