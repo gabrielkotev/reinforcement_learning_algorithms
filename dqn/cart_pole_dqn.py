@@ -58,29 +58,29 @@ class DQNAgent:
             layers.append(nn.ReLU())
 
         layers.append(nn.Linear(num_of_neurons, action_space))
-        self.policy_model = nn.Sequential(*layers)
+        self.q_network = nn.Sequential(*layers)
 
         device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-        self.target_model = copy.deepcopy(self.policy_model)
-        self.update_target_model()
+        self.target_network = copy.deepcopy(self.q_network)
+        self.update_target_network()
 
-        self.policy_model.to(device)
+        self.q_network.to(device)
 
-        for p in self.policy_model.parameters():
+        for p in self.q_network.parameters():
             p.register_hook(lambda grad: torch.clamp(grad, -5, 5))
 
         self.gamma = gamma
         self.epsilon = epsilon
         self.epsilon_reduce_factor = epsilon_reduce_factor
         self.loss_fn = torch.nn.MSELoss()
-        self.optimizer = optim.AdamW(self.policy_model.parameters(), lr=lr)
+        self.optimizer = optim.AdamW(self.q_network.parameters(), lr=lr)
         self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=scheduler_t_max, eta_min=0)
 
     def get_action(self, state, explore: bool = True):
         if not explore or random() > self.epsilon:
-            q_action = self.policy_model(state)
-            action = torch.argmax(q_action).item()
+            q_actions = self.q_network(state)
+            action = torch.argmax(q_actions).item()
         else:
             action = randint(0, self.action_space)
         return action
@@ -92,10 +92,10 @@ class DQNAgent:
     def train_on_batch(self, states, actions, rewards, next_states, done):
 
         with torch.no_grad():
-            q_next = self.target_model(next_states)
+            q_next = self.target_network(next_states)
             actual = rewards + self.gamma * ((1 - done) * torch.max(q_next, dim=1)[0])
 
-        q = self.policy_model(states)
+        q = self.q_network(states)
         predicted = q.gather(dim=1, index=actions.long().unsqueeze(dim=1)).squeeze()
 
         loss = self.loss_fn(predicted, actual)
@@ -106,8 +106,8 @@ class DQNAgent:
 
         self.scheduler.step()
 
-    def update_target_model(self):
-        self.target_model.load_state_dict(self.policy_model.state_dict())
+    def update_target_network(self):
+        self.target_network.load_state_dict(self.q_network.state_dict())
 
 
 class Trainer:
@@ -151,7 +151,7 @@ class Trainer:
                 states += torch.normal(0, 1e-5, size=states.shape)
                 self.agent.train_on_batch(states, actions, rewards, next_states, done)
                 if self.counter % 50 == 0:
-                    self.agent.update_target_model()
+                    self.agent.update_target_network()
 
                 self.counter += 1
 
