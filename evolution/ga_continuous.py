@@ -74,8 +74,8 @@ class GA:
 
     def perform_recombination(self, evaluation_scores: EvaluationScores, selection_count: float = 0.5) -> List[Agent]:
         new_population = []
-        pop_mix_num = int(self.population_count * selection_count)
-        chosen_population = evaluation_scores.perform_selection(pop_mix_num)
+        pop_portion = int(self.population_count * selection_count)
+        chosen_population = evaluation_scores.perform_selection(pop_portion)
         for i in range(0, len(chosen_population), 2):
             first_agent = chosen_population[i].agent
             second_agent = chosen_population[i + 1].agent
