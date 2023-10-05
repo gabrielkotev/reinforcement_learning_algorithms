@@ -69,21 +69,26 @@ class ACAgent:
         self.loss_fun = torch.nn.MSELoss()
         self.device = device
 
-    def learn(self, epoch):
+    def learn(self, epoch, video):
         state, _ = self.environment.reset()
         state = np.concatenate([state] * self.look_back)
 
         rewards_sum = 0
         counts = 0
-        while True:
+        episode_done = False
+        while not episode_done:
+            if video:
+                video.capture_frame()
             state_tensor = torch.from_numpy(state).flatten().to(self.device)
             log_probs, state_value = self.network(state_tensor)
             action_dist = torch.distributions.Categorical(logits=log_probs)
             action = action_dist.sample()
             log_prob = log_probs[action]
 
-            _state, _, episode_done, truncated, _ = self.environment.step(action.item())
+            _state, _, _, _, _ = self.environment.step(action.item())
             reward = abs(_state[4])
+            if counts > 1000:
+                episode_done = True
             state = np.concatenate([state, _state])[len(_state):]
             rewards_sum += reward
 
@@ -100,9 +105,6 @@ class ACAgent:
             total_loss = actor_loss + critic_loss
             total_loss.backward()
             self.optimizer.step()
-
-            if counts > 1000:
-                break
 
             counts += 1
 
@@ -143,11 +145,10 @@ if __name__ == '__main__':
         video = None
         if epoch % 100 == 0:
             video = VideoRecorder(env, os.path.join(video_path, f'epoch_{epoch}.mp4'))
-            video.capture_frame()
             print('epoch:', epoch)
 
         try:
-            total_reward = agent.learn(epoch)
+            total_reward = agent.learn(epoch, video)
             epoch_rewards.append(total_reward)
         finally:
             if video:

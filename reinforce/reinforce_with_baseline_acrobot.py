@@ -69,7 +69,7 @@ class REINFORCEAgent:
         self.loss_fun = torch.nn.MSELoss()
         self.device = device
 
-    def learn(self, epoch):
+    def learn(self, epoch, video):
         state, _ = self.environment.reset()
         state = np.concatenate([state] * self.look_back)
 
@@ -79,6 +79,8 @@ class REINFORCEAgent:
         state_values = []
         counter = 0
         while True:
+            if video:
+                video.capture_frame()
             state = torch.from_numpy(state).flatten().to(self.device)
             actions_dist, state_value = self.network(state)
             state_values.append(state_value)
@@ -147,11 +149,10 @@ if __name__ == '__main__':
         video = None
         if epoch % 100 == 0:
             video = VideoRecorder(env, os.path.join(video_path, f'epoch_{epoch}.mp4'))
-            video.capture_frame()
             print('epoch:', epoch)
 
         try:
-            total_reward = agent.learn(epoch)
+            total_reward = agent.learn(epoch, video)
             epoch_rewards.append(total_reward)
         finally:
             if video:
